@@ -8,13 +8,8 @@ from app.core.security import (
 )
 
 from app.models.user import User
-
 from app.repositories.user_repository import UserRepository
-
-from app.schemas.user import (
-    UserRegister,
-    UserLogin,
-)
+from app.schemas.user import UserRegister
 
 
 class AuthService:
@@ -43,30 +38,32 @@ class AuthService:
         return UserRepository.create(db, user)
 
     @staticmethod
-    def login(db: Session, data: UserLogin):
+    def login(
+        db: Session,
+        username: str,
+        password: str,
+    ):
 
-        user = UserRepository.get_by_email(db, data.email)
+        # We are using email as the username
+        user = UserRepository.get_by_email(db, username)
 
-        if not user:
+        if user is None:
             raise HTTPException(
-                status_code=401,
-                detail="Invalid email or password",
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect email or password",
             )
 
-        if not verify_password(
-            data.password,
-            user.hashed_password,
-        ):
+        if not verify_password(password, user.hashed_password):
             raise HTTPException(
-                status_code=401,
-                detail="Invalid email or password",
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect email or password",
             )
 
-        token = create_access_token(
-            {"sub": str(user.id)}
+        access_token = create_access_token(
+            data={"sub": str(user.id)}
         )
 
         return {
-            "access_token": token,
+            "access_token": access_token,
             "token_type": "bearer",
         }

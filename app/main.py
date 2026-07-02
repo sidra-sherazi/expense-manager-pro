@@ -2,6 +2,9 @@ from fastapi import FastAPI
 
 from app.db.base import Base
 from app.db.database import engine
+from app.dependencies.auth import get_current_user
+from app.models.user import User
+from fastapi import Depends
 
 import app.models
 
@@ -20,3 +23,14 @@ app.include_router(auth_router)
 @app.get("/")
 def root():
     return {"message": "Expense Manager Pro API"}
+
+
+@app.get("/me")
+def current_user(
+    user: User = Depends(get_current_user),
+):
+    return {
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+    }
