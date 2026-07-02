@@ -1,6 +1,5 @@
-from sqlalchemy import Column
-from sqlalchemy import Integer
 from sqlalchemy import String
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
 
@@ -8,21 +7,18 @@ from app.db.base import Base
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
 
-    username = Column(
-        String,
+    username: Mapped[str] = mapped_column(
+        String(50),
         unique=True,
-        nullable=False
+        nullable=False,
     )
 
-    email = Column(
-        String,
+    email: Mapped[str] = mapped_column(
+        String(255),
         unique=True,
-        nullable=False
+        nullable=False,
     )
 
-    hashed_password = Column(
-        String,
-        nullable=False
-    )
+    hashed_password: Mapped[str] = mapped_column(nullable=False)
