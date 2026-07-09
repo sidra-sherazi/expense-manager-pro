@@ -1,13 +1,13 @@
+from datetime import date
+
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.models.expense import Expense
 from app.models.user import User
-from datetime import date
 
 from app.repositories.category_repository import CategoryRepository
 from app.repositories.expense_repository import ExpenseRepository
-
 
 from app.schemas.expense import (
     ExpenseCreate,
@@ -53,26 +53,30 @@ class ExpenseService:
     def get_all(
         db: Session,
         user: User,
+        search: str | None = None,
         category_id: int | None = None,
         min_amount: float | None = None,
         max_amount: float | None = None,
         start_date: date | None = None,
         end_date: date | None = None,
-        sort: str | None = None,
+        sort_by: str = "created_at",
+        order: str = "desc",
         page: int = 1,
-        page_size: int = 10,
+        limit: int = 10,
     ):
         return ExpenseRepository.get_all(
             db=db,
             user_id=user.id,
+            search=search,
             category_id=category_id,
             min_amount=min_amount,
             max_amount=max_amount,
             start_date=start_date,
             end_date=end_date,
-            sort=sort,
+            sort_by=sort_by,
+            order=order,
             page=page,
-            page_size=page_size,
+            limit=limit,
         )
 
     @staticmethod

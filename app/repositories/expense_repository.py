@@ -1,7 +1,9 @@
-from sqlalchemy.orm import Session
-from app.models.expense import Expense
 from datetime import date
-from sqlalchemy import func
+
+from sqlalchemy import func, or_
+from sqlalchemy.orm import Session
+
+from app.models.expense import Expense
 
 
 class ExpenseRepository:
@@ -20,79 +22,103 @@ class ExpenseRepository:
     def get_all(
         db: Session,
         user_id: int,
+        search: str | None = None,
         category_id: int | None = None,
         min_amount: float | None = None,
         max_amount: float | None = None,
         start_date: date | None = None,
         end_date: date | None = None,
-        sort: str | None = None,
+        sort_by: str = "created_at",
+        order: str = "desc",
         page: int = 1,
-        page_size: int = 10,
+        limit: int = 10,
     ):
 
         query = db.query(Expense).filter(
             Expense.user_id == user_id,
         )
 
-        if category_id:
+        # Search
+        if search:
+            query = query.filter(
+                or_(
+                    Expense.title.ilike(f"%{search}%"),
+                    Expense.description.ilike(f"%{search}%"),
+                )
+            )
+
+        # Category Filter
+        if category_id is not None:
             query = query.filter(
                 Expense.category_id == category_id,
             )
 
+        # Minimum Amount
         if min_amount is not None:
             query = query.filter(
                 Expense.amount >= min_amount,
             )
 
+        # Maximum Amount
         if max_amount is not None:
             query = query.filter(
                 Expense.amount <= max_amount,
             )
 
-        if start_date:
+        # Date Range
+        if start_date is not None:
             query = query.filter(
                 func.date(Expense.created_at) >= start_date,
             )
 
-        if end_date:
+        if end_date is not None:
             query = query.filter(
                 func.date(Expense.created_at) <= end_date,
             )
 
         total = query.count()
 
-        if sort == "amount_asc":
-            query = query.order_by(
-                Expense.amount.asc(),
-            )
+        # Sorting
+        sortable_columns = {
+            "created_at": Expense.created_at,
+            "amount": Expense.amount,
+            "title": Expense.title,
+        }
 
-        elif sort == "amount_desc":
-            query = query.order_by(
-                Expense.amount.desc(),
-            )
+        sort_column = sortable_columns.get(
+            sort_by,
+            Expense.created_at,
+        )
 
-        elif sort == "oldest":
+        if order.lower() == "asc":
             query = query.order_by(
-                Expense.created_at.asc(),
+                sort_column.asc(),
             )
-
         else:
             query = query.order_by(
-                Expense.created_at.desc(),
+                sort_column.desc(),
             )
 
+        # Pagination
         expenses = (
             query
-            .offset((page - 1) * page_size)
-            .limit(page_size)
+            .offset((page - 1) * limit)
+            .limit(limit)
             .all()
         )
 
+        pages = (
+            (total + limit - 1) // limit
+            if total > 0
+            else 0
+        )
+
         return {
+            "items": expenses,
             "total": total,
             "page": page,
-            "page_size": page_size,
-            "items": expenses,
+            "limit": limit,
+            "pages": pages,
         }
 
     @staticmethod
